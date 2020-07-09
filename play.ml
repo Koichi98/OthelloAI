@@ -164,6 +164,53 @@ let rec choose_max ls max= (*(p:確率,(手))を並べたリストの中でpが�
     else 
       choose_max rest max
 
+let rec win_sub board color ms =  (*自分が一手進めたある局面で自分の必勝が成立するならば(true,(手)),成立しないならば(false,(手)).*)
+  match ms with 
+  |[] -> (false,(0,0))
+  |(i,j)::rest -> 
+    let copied_board = copy_board board in
+    let moved_board = doMove copied_board (Mv(i,j)) color in
+    let ocolor = opposite_color color in
+    (match lose moved_board ocolor with
+    |(true,(i',j')) -> (true,(i,j))
+    |(false,(i',j')) -> 
+      win_sub board color rest)
+and win board color = 
+  let ms = valid_moves board color in
+  let ocolor = opposite_color color in
+  let oms = valid_moves board ocolor in
+  let c = count board color in
+  let oc = count board ocolor in
+  if (ms=[] && oms = []) then (*終局している*)
+    (if (c>oc) then (*自分が既に勝っている*)
+     (true,(0,0))
+    else (false,(0,0)))
+  else (*終局していない*)
+   win_sub board color ms (*必勝手筋があるかどうか*)
+and lose_sub board color ms =
+  match ms with
+  |[] -> (true,(0,0))
+  |(i,j)::rest ->
+    let copied_board = copy_board board in
+    let moved_board = doMove copied_board (Mv(i,j)) color in
+    let ocolor = opposite_color color in
+    (match win moved_board ocolor with 
+    |(false,(i',j')) -> (false,(i,j))
+    |(true,(i',j')) -> 
+      lose_sub board color rest)
+and lose board color = 
+  let ms = valid_moves board color in
+  let ocolor = opposite_color color in
+  let oms = valid_moves board ocolor in
+  let c = count board color in
+  let oc = count board ocolor in
+  if (ms=[] && oms = []) then (*終局している*)
+    (if (oc>c) then (*相手が既に勝っている*)
+    (true,(0,0))
+    else (false,(0,0)))
+  else (*終局している*)
+    lose_sub board color ms
+
 let print_board board =
   print_endline " |A B C D E F G H ";
   print_endline "-+----------------";
@@ -175,6 +222,17 @@ let print_board board =
     print_endline ""
   done;
   print_endline "  (X: Black,  O: White)"
+
+let rec lose_hand board color ms =
+  match ms with
+  |[] -> []
+  |(i,j)::rest -> 
+  let copied_board = copy_board board in
+  let moved_board = doMove copied_board (Mv(i,j)) color in
+  let ocolor = opposite_color color in
+    (match win moved_board ocolor with 
+    |(true,(i',j')) -> lose_hand board color rest 
+    |(false,(i',j')) -> (i,j)::(lose_hand board color rest))
 
 let play board color =
   (*print_board board;*)(*盤面の出力*)
@@ -190,13 +248,19 @@ let play board color =
         Mv (i,j)
       else 
         let new_board = copy_board board in
-        let ls = mating new_board color ms in
-        let def::rest = ls in
-        let (i,j) = choose_max ls def in
-        (*print_p_ls ls; *)
-        Mv (i,j))
-
-
+        match win new_board color with
+        |(true,(i,j)) -> 
+          Mv (i,j)
+        |(false,(i,j)) ->
+          let ls = lose_hand board color ms in
+          (if ls = [] then 
+            let k = Random.int (List.length ms) in
+            let (i,j) = List.nth ms k in
+            Mv (i,j)
+          else 
+            let k = Random.int (List.length ls) in
+            let (i,j) = List.nth ls k in
+            Mv (i,j)))
 
 let report_result board =
   let _ = print_endline "========== Final Result ==========" in
