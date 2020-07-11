@@ -305,10 +305,10 @@ let play board color =
         let k = Random.int (List.length ms) in
         let (i,j) = List.nth ms k in
         Mv (i,j)
-      else if step < 52 then 
-        let (m,(i,j)) = negamax board color 5in
+      else if step < 50 t then 
+        let (m,(i,j)) = negamax board color 6 in
         Mv (i,j)
-      else
+      else if step < 58 then
         let new_board = copy_board board in
         match win new_board color with
         |(true,(i,j)) -> (*必勝手筋があった場合*)
@@ -316,20 +316,22 @@ let play board color =
           Mv (i,j)
         |(false,(i,j)) ->(*必勝がなかった場合*)
          Printf.printf "必勝なし\n";
-          let ls = lose_hand board color ms in
-          (if step > 56 then 
-            (if ls = [] then 
-              let k = Random.int (List.length ms) in
-              let (i,j) = List.nth ms k in
-              Mv (i,j)
-            else 
-              let k = Random.int (List.length ls) in
-              let (i,j) = List.nth ls k in
-              Mv (i,j))
-          else
-            let (m,(i,j)) = negamax board color 3 in
-            Mv (i,j)))
-          
+          (*let ls = lose_hand board color ms in
+          let (m,(i,j)) = negamax_sub board color 3 ls (-65,(0,0)) in*)
+        let (m,(i,j)) = negamax board color 3 in
+          Mv (i,j)
+      else 
+        let new_board = copy_board board in
+        match win new_board color with
+        |(true,(i,j)) -> (*必勝手筋があった場合*)
+        Printf.printf "必勝\n";
+          Mv (i,j)
+        |(false,(i,j)) ->(*必勝がなかった場合*)
+        let ls = mating new_board color ms in
+        let def::rest = ls in
+        let (i,j) = choose_max ls def in
+        Mv (i,j))
+
 
 let report_result board =
   let _ = print_endline "========== Final Result ==========" in
