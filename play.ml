@@ -187,7 +187,11 @@ and win board color =
     (if (c>oc) then (*自分が既に勝っている*)
      (true,(0,0))
     else (false,(0,0)))
-  else (*終局していない*)
+  else if ms = [] then(*終局していない&&自分がパス*)
+    match lose board ocolor with
+    |(true,(i',j')) -> (true,(0,0))
+    |(false,(i',j')) -> (false,(0,0))
+  else(*終局していない&&自分がパスしない*)
    win_sub board color ms (*必勝手筋があるかどうか*)
 and lose_sub board color ms =
   match ms with
@@ -210,7 +214,11 @@ and lose board color =
     (if (oc>c) then (*相手が既に勝っている*)
     (true,(0,0))
     else (false,(0,0)))
-  else (*終局している*)
+  else if ms=[] then(*終局してない&&自分がパス*)
+    match win board ocolor with
+    |(true,(i',j')) -> (true,(0,0))
+    |(false,(i',j')) -> (false,(0,0))
+  else(*終局していない&&自分がパスしない*)
     lose_sub board color ms
 
 let rec lose_hand board color ms =
@@ -225,59 +233,36 @@ let rec lose_hand board color ms =
     |(false,(i',j')) -> (i,j)::(lose_hand board color rest))
 
 
-
-
-
 (*Negamax探索法*)
-let rec negamax board color depth =
+let rec negamax board color depth =  
   if depth = 0 then 
-  let c = count board color in
+  let ocolor = opposite_color color in
+  let c = count board ocolor in (*単純な自分の石の個数でdepth手後の盤面を評価*)
   (c,(0,0))
   else
     let ms = valid_moves board color in 
-    (*(if ms = [] then (*合法手がなかった場合*)(*パスが起きるときについてはここで調整予定*)
+    if ms=[] then 
       let ocolor = opposite_color color in
-      let oms = valid_moves board ocolor in 
-      (if oms = [] then (*勝敗が決まる場合*)
-        (*let c = count board color in
-        let oc = count board ocolor in
-        (if c > oc then 
-        (64,(0,0))
-        else *)
-        (65,(0,0))
-      else 
-        (*(if depth mod 2 = 0 then (*相手の合法手のみがない*)*)
-          let (m,(i,j)) = (negamax_sub board ocolor (depth-1) oms (-65,(0,0))) in
-          (-m,(i,j))
-        (*else(*自分の合法手のみがない*)*)
-      )
-    else*)
-    negamax_sub board color depth ms (-65,(0,0))
+      negamax board ocolor (depth-1) 
+    else
+      negamax_sub board color depth ms (-65,(0,0))
 
 and negamax_sub board color depth ms max =
     match ms with
     |[] -> 
-      (*let (m,(i,j)) = max in
-      if m = -65 then 
-      (m,(i,j))
-      else
-      (-m,(i,j))*)
-      max
+     let (m,(i,j)) = max in
+      (-m,(i,j))
     |(i,j)::rest ->
       let copied_board = copy_board board in
       let moved_board = doMove copied_board (Mv(i,j)) color in
       let ocolor = opposite_color color in
-      let (v,(k,l)) = negamax moved_board ocolor (depth-1) in
       let (m,(i',j')) = max in
-      if v = 65 then (*ひとまずパスが起きた際はここで処理（相手のパスでも自分のパスでも単純に捨てる）:合法手がない場合に-(-65)によって65が返ってきている場合があるのでその場合には必ずmを選択*)
-        negamax_sub moved_board ocolor depth rest max 
-      else if m < v then
-        negamax_sub moved_board ocolor depth rest (v,(i,j))
-      else
-        negamax_sub moved_board ocolor depth rest max
-
-
-
+      let (v,(k,l)) = negamax moved_board ocolor (depth-1) in
+      if v > m then 
+        negamax_sub board color depth rest (v,(i,j))
+      else 
+        negamax_sub board color depth rest max
+ 
 
 let print_board board =
   print_endline " |A B C D E F G H ";
@@ -292,8 +277,9 @@ let print_board board =
   print_endline "  (X: Black,  O: White)"
 
 
+
 let play board color =
-  print_board board;(*盤面の出力*)
+  (*print_board board;(*盤面の出力*)*)
   let ms = valid_moves board color in
   (*print_valid_moves ms;*) (*合法手の出力*)
     if ms = [] then
@@ -305,10 +291,30 @@ let play board color =
         let k = Random.int (List.length ms) in
         let (i,j) = List.nth ms k in
         Mv (i,j)
-      else if step < 52 then 
-        let (m,(i,j)) = negamax board color 5in
+      else if step < 49 then 
+        let (m,(i,j)) = negamax board color 5 in
         Mv (i,j)
-      else
+      else if step < 58 then
+        match win board color with
+        |(true,(i,j)) -> (*必勝手筋があった場合*)
+        Printf.printf "必勝\n";
+          Mv (i,j)
+        |(false,(i,j)) ->(*必勝がなかった場合*)
+         Printf.printf "必勝なし\n";
+          let k = Random.int (List.length ms) in
+          let (i,j) = List.nth ms k in
+          Mv (i,j)
+      else 
+        match win board color with
+        |(true,(i,j)) -> (*必勝手筋があった場合*)
+        Printf.printf "必勝\n";
+          Mv (i,j)
+        |(false,(i,j)) ->(*必勝がなかった場合*)
+          let k = Random.int (List.length ms) in
+          let (i,j) = List.nth ms k in
+          Mv (i,j))
+
+     (* else
         let new_board = copy_board board in
         match win new_board color with
         |(true,(i,j)) -> (*必勝手筋があった場合*)
@@ -328,7 +334,7 @@ let play board color =
               Mv (i,j))
           else
             let (m,(i,j)) = negamax board color 3 in
-            Mv (i,j)))
+            Mv (i,j)))*)
           
 
 let report_result board =

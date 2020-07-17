@@ -6,7 +6,7 @@ open Color
 open Printf
 
 let opt_verbose     = ref false
-let opt_player_name = ref "winlose"
+let opt_player_name = ref "working"
 let opt_port        = ref 3000
 let opt_host        = ref "localhost"
 
