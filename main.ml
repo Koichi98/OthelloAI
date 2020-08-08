@@ -6,9 +6,11 @@ open Color
 open Printf
 
 let opt_verbose     = ref false
-let opt_player_name = ref "working"
+let opt_player_name = ref "Koichi"
 let opt_port        = ref 3000
 let opt_host        = ref "localhost"
+
+exception LOSED
 
 let options =
   [("-H", Arg.Set_string opt_host, "host name (default = local host)");
@@ -52,7 +54,7 @@ let output_command oc command =
       failwith "Client cannot not send the commands other than MOVE and Open"
 
 
-type opmove = PMove of move | OMove of move
+(*type opmove = PMove of move | OMove of move
 
 let string_of_opmove = function
   | PMove mv -> "+" ^ string_of_move mv
@@ -61,7 +63,7 @@ let string_of_opmove = function
 type hist = opmove list
 
 let string_of_hist x = List.fold_left (fun r a -> string_of_opmove a ^ " " ^ r) "" x
-let print_hist x = print_endline (string_of_hist x)
+let print_hist x = print_endline (string_of_hist x)*)
 
 let string_of_scores scores =
   let maxlen =
@@ -90,7 +92,7 @@ let rec wait_start (ic,oc) =
       failwith "Invalid Command"
 
 and my_move (ic,oc) board color hist oname mytime =
-  let pmove = play board color in
+  let pmove = play board color hist in
   let board = doMove board pmove color in
   let _ = output_command oc (Move pmove) in
   let _ = if !opt_verbose then
@@ -122,7 +124,7 @@ and op_move (ic,oc) board color hist oname mytime =
 and proc_end (ic,oc) board color hist oname wl n m r =
   let _ = match wl with
     | Win  -> printf "You win! (%d vs. %d) -- %s.\n" n m r
-    | Lose -> printf "You lose! (%d vs. %d) -- %s.\n" n m r
+    | Lose -> printf "You lose! (%d vs. %d) -- %s.\n" n m r;(*raise LOSED*)
     | Tie  -> printf "Draw (%d vs. %d) -- %s.\n" n m r in
   let _ =
     printf "Your name: %s (%s)  Oppnent name: %s (%s).\n"
